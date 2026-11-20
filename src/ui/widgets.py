@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import math
+import random
+import time
 import tkinter as tk
+import webbrowser
 from pathlib import Path
 from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
 
 from core.safety import ConfirmationRequest
+from core.tools import SUPPORT_URL
 
 
 class NavButton(ctk.CTkButton):
@@ -176,3 +181,222 @@ class KeyValueTable(ctk.CTkScrollableFrame):
                 row=self._row, column=1, sticky="nw", padx=(0, 8), pady=3
             )
             self._row += 1
+
+
+def _mix_hex(first: str, second: str, amount: float) -> str:
+    amount = max(0.0, min(1.0, amount))
+    left = first.lstrip("#")
+    right = second.lstrip("#")
+    channels = []
+    for index in (0, 2, 4):
+        a = int(left[index : index + 2], 16)
+        b = int(right[index : index + 2], 16)
+        channels.append(round(a + (b - a) * amount))
+    return "#{:02x}{:02x}{:02x}".format(*channels)
+
+
+class SupportSplash(ctk.CTkToplevel):
+    """Self-contained animated thank-you card shown before the support redirect."""
+
+    WIDTH = 640
+    HEIGHT = 420
+    BACKGROUND = "#070b17"
+    ACCENTS = ("#FFB300", "#00E5FF", "#34D399", "#F472B6", "#A78BFA")
+
+    def __init__(self, master, url: str, on_opened=None):
+        super().__init__(master)
+        self._url = url
+        self._on_opened = on_opened
+        self._duration = 3.2
+        self._start = time.monotonic()
+        self._last = self._start
+        self._finished = False
+        self._rng = random.Random()
+
+        self.title("Thank you for supporting FlashBridge")
+        self.geometry(f"{self.WIDTH}x{self.HEIGHT}")
+        self.resizable(False, False)
+        self.transient(master)
+        self.configure(fg_color=self.BACKGROUND)
+        try:
+            self.attributes("-topmost", True)
+        except Exception:
+            pass
+
+        self.update_idletasks()
+        x = master.winfo_rootx() + max(0, (master.winfo_width() - self.WIDTH) // 2)
+        y = master.winfo_rooty() + max(0, (master.winfo_height() - self.HEIGHT) // 2)
+        self.geometry(f"+{x}+{y}")
+
+        self._canvas = tk.Canvas(
+            self,
+            width=self.WIDTH,
+            height=self.HEIGHT,
+            bg=self.BACKGROUND,
+            highlightthickness=0,
+            bd=0,
+        )
+        self._canvas.pack(fill="both", expand=True)
+
+        self._particles = [
+            {
+                "x": self._rng.uniform(24, self.WIDTH - 24),
+                "y": self._rng.uniform(24, self.HEIGHT - 24),
+                "vx": self._rng.uniform(-18, 18),
+                "vy": self._rng.uniform(-30, -8),
+                "size": self._rng.choice((2, 3, 4, 5)),
+                "color": self._rng.choice(self.ACCENTS),
+            }
+            for _ in range(46)
+        ]
+
+        self.bind("<Escape>", lambda _event: self._finish())
+        self.protocol("WM_DELETE_WINDOW", self._finish)
+        self.lift()
+        self.focus_force()
+        self.after(30, self._tick)
+        self.after(int(self._duration * 1000), self._finish)
+
+    # ---------- animation ----------
+
+    def _tick(self) -> None:
+        if self._finished or not self.winfo_exists():
+            return
+        now = time.monotonic()
+        delta = max(0.0, min(0.06, now - self._last))
+        self._last = now
+        elapsed = now - self._start
+        progress = min(1.0, elapsed / self._duration)
+        self._draw(progress, elapsed, delta)
+        self.after(30, self._tick)
+
+    def _draw(self, progress: float, elapsed: float, delta: float) -> None:
+        canvas = self._canvas
+        canvas.delete("all")
+
+        top = "#0b1021"
+        middle = "#172554"
+        bands = 30
+        for index in range(bands):
+            ratio = index / max(1, bands - 1)
+            color = _mix_hex(top, middle, ratio)
+            y = index * (self.HEIGHT / bands)
+            canvas.create_rectangle(
+                0, y, self.WIDTH, y + self.HEIGHT / bands + 2,
+                fill=color, outline="", tags="anim"
+            )
+
+        for offset in range(0, self.WIDTH + 120, 120):
+            canvas.create_line(
+                offset, 0, offset - 160, self.HEIGHT,
+                fill=_mix_hex(top, "#93c5fd", 0.12),
+                stipple="gray25", tags="anim"
+            )
+
+        for particle in self._particles:
+            particle["x"] += particle["vx"] * delta
+            particle["y"] += particle["vy"] * delta
+            if particle["y"] < 18:
+                particle["y"] = self.HEIGHT - 18
+                particle["x"] = self._rng.uniform(24, self.WIDTH - 24)
+            if particle["x"] < 12:
+                particle["x"] = self.WIDTH - 12
+            elif particle["x"] > self.WIDTH - 12:
+                particle["x"] = 12
+            radius = particle["size"]
+            color = _mix_hex(self.BACKGROUND, particle["color"], 0.72)
+            canvas.create_oval(
+                particle["x"] - radius,
+                particle["y"] - radius,
+                particle["x"] + radius,
+                particle["y"] + radius,
+                fill=color, outline="", tags="anim"
+            )
+
+        center_x, center_y = self.WIDTH // 2, 118
+        for index in range(5):
+            cycle = (progress * 1.7 + index * 0.2) % 1.0
+            radius = 42 + cycle * 200
+            color = _mix_hex(self.BACKGROUND, self.ACCENTS[index % len(self.ACCENTS)], 0.30 * (1.0 - cycle))
+            canvas.create_oval(
+                center_x - radius, center_y - radius,
+                center_x + radius, center_y + radius,
+                outline=color, width=2, tags="anim"
+            )
+
+        pulse = 0.5 + 0.5 * math.sin(elapsed * 4.2)
+        heart_color = _mix_hex("#FFB300", "#00E5FF", 0.35 + pulse * 0.4)
+        heart_size = 50 + pulse * 6
+        canvas.create_polygon(
+            self._heart_points(center_x, center_y, heart_size),
+            fill=heart_color, outline="", tags="anim"
+        )
+
+        if elapsed < 0.9:
+            title = "Thank you!"
+            subtitle = "Your support means everything."
+        elif elapsed < 1.8:
+            title = "You are amazing!"
+            subtitle = "It keeps FlashBridge fast, free, and independent."
+        elif elapsed < 2.6:
+            title = "We appreciate you!"
+            subtitle = "Every coffee helps bring new tools and fixes."
+        else:
+            title = "Opening Buy me a coffee..."
+            subtitle = "Redirecting now."
+
+        title_color = _mix_hex("#0b1021", "#FFE9A8", min(1.0, elapsed / 0.5))
+        subtitle_color = _mix_hex("#0b1021", "#BFEFFF", min(1.0, elapsed / 0.8))
+        canvas.create_text(
+            center_x, 202, text=title,
+            font=("Segoe UI", 29, "bold"), fill=title_color, tags="anim"
+        )
+        canvas.create_text(
+            center_x, 244, text=subtitle,
+            font=("Segoe UI", 15), fill=subtitle_color, tags="anim"
+        )
+        canvas.create_text(
+            center_x, 338, text="Thank you for backing independent tools.",
+            font=("Segoe UI", 12), fill="#93a0bc", tags="anim"
+        )
+
+        track_x, track_y, track_w, track_h = 40, 380, self.WIDTH - 80, 8
+        canvas.create_rectangle(
+            track_x, track_y, track_x + track_w, track_y + track_h,
+            fill="#1d2740", outline="", tags="anim"
+        )
+        canvas.create_rectangle(
+            track_x, track_y, track_x + int(track_w * progress), track_y + track_h,
+            fill="#FFB300", outline="", tags="anim"
+        )
+
+    @staticmethod
+    def _heart_points(cx: int, cy: int, size: float) -> list[float]:
+        points: list[float] = []
+        scale = size / 32.0
+        for step in range(80):
+            angle = 2.0 * math.pi * step / 80
+            x = 16.0 * math.sin(angle) ** 3
+            y = (
+                13.0 * math.cos(angle)
+                - 5.0 * math.cos(2.0 * angle)
+                - 2.0 * math.cos(3.0 * angle)
+                - math.cos(4.0 * angle)
+            )
+            points.extend((cx + x * scale, cy - y * scale))
+        return points
+
+    def _finish(self) -> None:
+        if self._finished:
+            return
+        self._finished = True
+        try:
+            webbrowser.open(self._url)
+        except Exception:
+            pass
+        try:
+            if callable(self._on_opened):
+                self._on_opened()
+        except Exception:
+            pass
+        self.destroy()

@@ -126,6 +126,9 @@ If FlashBridge PC is useful, support development at:
 https://buymeacoffee.com/netherish
 
 The same link is available from the top bar and the About page in the app.
+Clicking it plays a short animated greeting and thank-you card before opening
+the support page in your browser. Everything is drawn inside the EXE, so no
+extra files are required.
 
 ## License
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import threading
+import tkinter as tk
 import tkinter.messagebox as messagebox
-import webbrowser
 from typing import Any, Callable
 
 import customtkinter as ctk
@@ -16,7 +16,7 @@ from core.settings import Settings
 from core.tools import APP_NAME, APP_VERSION, SUPPORT_URL
 from core.vendor_tools import VendorManager
 from .ambient import AmbientBackground
-from .widgets import ConfirmDialog, NavButton
+from .widgets import ConfirmDialog, NavButton, SupportSplash
 
 
 class FlashBridgeApp(ctk.CTk):
@@ -31,6 +31,7 @@ class FlashBridgeApp(ctk.CTk):
         self._poll_thread: threading.Thread | None = None
         self._pages: dict[str, Any] = {}
         self._nav_buttons: dict[str, NavButton] = {}
+        self._support_splash: SupportSplash | None = None
 
         ctk.set_appearance_mode(str(self.settings.get("appearance", "dark")))
         ctk.set_default_color_theme(str(self.settings.get("color_theme", "blue")))
@@ -145,8 +146,6 @@ class FlashBridgeApp(ctk.CTk):
         self.content.grid(row=1, column=1, sticky="nsew", padx=18, pady=(14, 18))
         self.content.grid_columnconfigure(0, weight=1)
         self.content.grid_rowconfigure(0, weight=1)
-        self.page_title = ctk.CTkLabel(self, text="", font=ctk.CTkFont(size=12))
-        self.page_title.grid(row=0, column=1, sticky="ne", padx=18, pady=(4, 0))
 
     def _build_pages(self) -> None:
         from .pages.apps import AppsPage
@@ -194,7 +193,6 @@ class FlashBridgeApp(ctk.CTk):
         self._pages[name].grid()
         for nav_name, button in self._nav_buttons.items():
             button.set_active(nav_name == name)
-        self.page_title.configure(text=self._pages[name].page_title)
         try:
             self._pages[name].on_show()
         except Exception as exc:
@@ -266,7 +264,22 @@ class FlashBridgeApp(ctk.CTk):
         self.status_dot.configure(text_color=colors.get(kind, "gray"))
 
     def open_support(self) -> None:
-        webbrowser.open(SUPPORT_URL)
+        if self._support_splash is not None:
+            try:
+                if self._support_splash.winfo_exists():
+                    self._support_splash.lift()
+                    self._support_splash.focus_force()
+                    return
+            except tk.TclError:
+                pass
+        self._support_splash = SupportSplash(
+            self,
+            SUPPORT_URL,
+            on_opened=self._support_opened,
+        )
+
+    def _support_opened(self) -> None:
+        self._support_splash = None
         self.logs.log(f"Opened support link: {SUPPORT_URL}", "INFO", "system")
         self.set_status("Support link opened", "ok")
 
