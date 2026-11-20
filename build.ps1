@@ -33,6 +33,7 @@ $pyinstallerArgs = @(
     "--onefile",
     "--console",
     "--name", $exeName,
+    "--icon", "$root\assets\FlashBridge.ico",
     "--paths", $src,
     "--hidden-import", "customtkinter",
     "--hidden-import", "darkdetect",

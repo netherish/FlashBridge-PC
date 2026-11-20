@@ -7,6 +7,7 @@ from pathlib import Path
 APP_NAME = "FlashBridge PC"
 APP_VERSION = "1.0.0"
 APP_ID = "com.netherish.flashbridgepc"
+SUPPORT_URL = "https://buymeacoffee.com/netherish"
 
 
 def resource_root() -> Path:

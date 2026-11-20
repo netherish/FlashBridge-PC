@@ -120,6 +120,13 @@ never bundles firmware images and does not impose an image size limit. Vendor
 tools have their own confirmation dialogs and remain user-controlled. Back up
 devices before flashing and use only firmware intended for the exact model.
 
+## Support
+
+If FlashBridge PC is useful, support development at:
+https://buymeacoffee.com/netherish
+
+The same link is available from the top bar and the About page in the app.
+
 ## License
 
 FlashBridge PC is MIT licensed. Bundled platform-tools are Apache-2.0 licensed.

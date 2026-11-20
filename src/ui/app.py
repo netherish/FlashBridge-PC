@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import threading
 import tkinter.messagebox as messagebox
+import webbrowser
 from typing import Any, Callable
 
 import customtkinter as ctk
@@ -12,7 +13,7 @@ from core.runner import CommandResult, runner
 from core.safety import build_confirmation, requires_confirmation
 from core.scripts import ScriptStore
 from core.settings import Settings
-from core.tools import APP_NAME, APP_VERSION
+from core.tools import APP_NAME, APP_VERSION, SUPPORT_URL
 from core.vendor_tools import VendorManager
 from .ambient import AmbientBackground
 from .widgets import ConfirmDialog, NavButton
@@ -127,8 +128,17 @@ class FlashBridgeApp(ctk.CTk):
 
         ctk.CTkButton(top, text="Refresh", width=88, command=self.refresh_devices).grid(row=0, column=4, padx=6)
         ctk.CTkButton(top, text="Cancel", width=76, command=self.cancel_current, fg_color="transparent").grid(
-            row=0, column=5, padx=(0, 18)
+            row=0, column=5, padx=6
         )
+        ctk.CTkButton(
+            top,
+            text="Support",
+            width=88,
+            command=self.open_support,
+            fg_color="#f59e0b",
+            hover_color="#d97706",
+            text_color="#0b1021",
+        ).grid(row=0, column=6, padx=(0, 18))
 
     def _build_content(self) -> None:
         self.content = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -254,6 +264,11 @@ class FlashBridgeApp(ctk.CTk):
         colors = {"idle": "gray", "ok": "#16a34a", "run": "#2563eb", "warn": "#d97706", "error": "#dc2626"}
         self.status_label.configure(text=text)
         self.status_dot.configure(text_color=colors.get(kind, "gray"))
+
+    def open_support(self) -> None:
+        webbrowser.open(SUPPORT_URL)
+        self.logs.log(f"Opened support link: {SUPPORT_URL}", "INFO", "system")
+        self.set_status("Support link opened", "ok")
 
     # ---------- command execution ----------
 

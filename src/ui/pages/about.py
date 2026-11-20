@@ -20,7 +20,25 @@ class AboutPage(BasePage):
             text="A Windows desktop console for ADB and fastboot device work.",
             wraplength=760,
             justify="left",
-        ).pack(anchor="w", padx=24, pady=(12, 22))
+        ).pack(anchor="w", padx=24, pady=(12, 10))
+
+        support = ctk.CTkFrame(card, fg_color="transparent")
+        support.pack(anchor="w", fill="x", padx=24, pady=(0, 20))
+        ctk.CTkLabel(
+            support,
+            text="Support development:",
+            font=ctk.CTkFont(size=12),
+            text_color=("gray45", "gray65"),
+        ).pack(side="left")
+        ctk.CTkButton(
+            support,
+            text="Buy me a coffee",
+            width=150,
+            command=self.app.open_support,
+            fg_color="#f59e0b",
+            hover_color="#d97706",
+            text_color="#0b1021",
+        ).pack(side="left", padx=(10, 0))
 
         notices = ctk.CTkFrame(self)
         notices.grid(row=1, column=0, sticky="nsew")
