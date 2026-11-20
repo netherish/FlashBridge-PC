@@ -9,6 +9,7 @@ import customtkinter as ctk
 
 from core.tools import license_path
 from core.vendor_tools import TOOLS, ToolStatus, VendorTool
+from ui.tool_host import EmbeddedToolHost
 
 from .base import BasePage
 
@@ -31,6 +32,10 @@ class ToolsPage(BasePage):
         super().__init__(master, app)
         self._cards: dict[str, dict[str, object]] = {}
         self._filter = "All"
+        self.grid_rowconfigure(1, weight=0)
+        self.grid_rowconfigure(2, weight=1)
+        self.grid_rowconfigure(3, weight=0)
+        self.grid_rowconfigure(4, weight=0)
 
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.grid(row=0, column=0, sticky="ew", pady=(0, 10))
@@ -42,13 +47,13 @@ class ToolsPage(BasePage):
         ).grid(row=0, column=0, sticky="w")
         ctk.CTkLabel(
             header,
-            text="Every accepted tool is listed here. Launch it directly from FlashBridge PC.",
+            text="Click 'Open in app' and the tool opens inside this window. Installers and CLI tools open normally.",
             font=ctk.CTkFont(size=12),
             text_color=("gray45", "gray65"),
         ).grid(row=1, column=0, sticky="w")
         ctk.CTkButton(
             header,
-            text="Unpack all",
+            text="Prepare all",
             width=110,
             command=self.unpack_all,
         ).grid(row=0, column=1, rowspan=2, padx=6)
@@ -91,12 +96,54 @@ class ToolsPage(BasePage):
         self.scroll.grid_columnconfigure(0, weight=1)
         self.scroll.grid_columnconfigure(1, weight=1)
 
+        host = ctk.CTkFrame(self, corner_radius=12)
+        host.grid(row=3, column=0, sticky="nsew", pady=(10, 0))
+        host.grid_columnconfigure(0, weight=1)
+        host.grid_rowconfigure(1, weight=1)
+        host_header = ctk.CTkFrame(host, fg_color="transparent")
+        host_header.grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 4))
+        host_header.grid_columnconfigure(0, weight=1)
+        self.host_title = ctk.CTkLabel(
+            host_header,
+            text="Tool window: none",
+            font=ctk.CTkFont(size=13, weight="bold"),
+        )
+        self.host_title.grid(row=0, column=0, sticky="w")
+        self.host_detail = ctk.CTkLabel(
+            host_header,
+            text="Compatible tools open here, inside FlashBridge PC.",
+            font=ctk.CTkFont(size=11),
+            text_color=("gray45", "gray65"),
+        )
+        self.host_detail.grid(row=1, column=0, sticky="w")
+        self.close_tool = ctk.CTkButton(
+            host_header,
+            text="Close tool",
+            width=90,
+            state="disabled",
+            command=self._close_tool,
+        )
+        self.close_tool.grid(row=0, column=1, rowspan=2, padx=6)
+
+        self.embed_frame = ctk.CTkFrame(host, corner_radius=8, fg_color=("#e8f1ff", "#050914"), height=260)
+        self.embed_frame.grid(row=1, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        self.embed_frame.grid_propagate(False)
+        self.placeholder = ctk.CTkLabel(
+            self.embed_frame,
+            text="No tool is open.\nClick 'Open in app' on a tool card to show it here.",
+            justify="center",
+            text_color=("gray45", "gray65"),
+        )
+        self.placeholder.place(relx=0.5, rely=0.5, anchor="center")
+        self.host = EmbeddedToolHost(self.app, self.embed_frame, on_state=self._host_state)
+
         notice = ctk.CTkFrame(self, fg_color=("gray88", "gray15"))
-        notice.grid(row=3, column=0, sticky="ew", pady=(10, 0))
+        notice.grid(row=4, column=0, sticky="ew", pady=(10, 0))
         ctk.CTkLabel(
             notice,
             text=(
-                "Installers require administrator approval. Mi tools require Xiaomi account permission. "
+                "Compatible tools are prepared automatically on first use and shown in the tool window. "
+                "Installers need administrator approval. Mi tools require Xiaomi account permission. "
                 "Odin has no official public package and is not bundled. Security bypass utilities are not included."
             ),
             wraplength=1100,
@@ -183,7 +230,12 @@ class ToolsPage(BasePage):
 
         actions = ctk.CTkFrame(card, fg_color="transparent")
         actions.grid(row=5, column=0, columnspan=2, sticky="w", padx=10, pady=(4, 12))
-        launch_text = "Unpack and launch" if status.state == "bundled" else "Launch"
+        if tool.installer:
+            launch_text = "Run installer"
+        elif tool.console:
+            launch_text = "Open console"
+        else:
+            launch_text = "Open in app"
         launch = ctk.CTkButton(
             actions,
             text=launch_text,
@@ -222,6 +274,56 @@ class ToolsPage(BasePage):
 
     # ---------- actions ----------
 
+    def _close_tool(self) -> None:
+        self.host.close()
+        self.host_title.configure(text="Tool window: none")
+        self.host_detail.configure(text="Compatible tools open here, inside FlashBridge PC.")
+        self.placeholder.configure(
+            text="No tool is open.\nClick 'Open in app' on a tool card to show it here."
+        )
+        self.placeholder.place(relx=0.5, rely=0.5, anchor="center")
+        self.close_tool.configure(state="disabled")
+
+    def _host_state(self, event: str, tool_name: str, detail: str = "") -> None:
+        if event == "preparing":
+            self.host_title.configure(text=f"Preparing {tool_name}...")
+            self.host_detail.configure(text="Unpacking if needed, then opening the tool window.")
+            self.placeholder.configure(text=f"Starting {tool_name}...\nThis can take a few seconds.")
+            self.placeholder.place(relx=0.5, rely=0.5, anchor="center")
+            self.close_tool.configure(state="disabled")
+            self.app.set_status(f"Starting {tool_name}", "run")
+            return
+        if event == "embedded":
+            self.host_title.configure(text=f"Tool window: {tool_name}")
+            self.host_detail.configure(text=detail or "Running inside FlashBridge PC.")
+            self.placeholder.place_forget()
+            self.close_tool.configure(state="normal")
+            self.app.set_status(f"{tool_name} is open in the app", "ok")
+            self.app.logs.log(f"{tool_name} embedded in the tool window.", "INFO", "vendor")
+            self.refresh()
+            return
+        if event == "external":
+            self.host_title.configure(text=f"{tool_name}: opened separately")
+            self.host_detail.configure(text=detail)
+            self.placeholder.configure(text=detail)
+            self.placeholder.place(relx=0.5, rely=0.5, anchor="center")
+            self.close_tool.configure(state="disabled")
+            self.app.set_status(f"{tool_name} started", "ok")
+            self.app.logs.log(f"{tool_name}: {detail}", "INFO", "vendor")
+            return
+        if event == "error":
+            self.host_title.configure(text="Tool could not open")
+            self.host_detail.configure(text=detail)
+            self.placeholder.configure(text=detail)
+            self.placeholder.place(relx=0.5, rely=0.5, anchor="center")
+            self.close_tool.configure(state="disabled")
+            self.app.set_status("Vendor tool failed", "error")
+            self.app.logs.log(f"{tool_name}: {detail}", "ERROR", "vendor")
+            messagebox.showerror("Vendor tools", detail)
+            return
+        if event == "closed":
+            self._close_tool()
+
     def _finish(self, tool: VendorTool | None, message: str, error: bool = False) -> None:
         level = "ERROR" if error else "INFO"
         self.app.logs.log(message, level, "vendor")
@@ -232,6 +334,10 @@ class ToolsPage(BasePage):
         self.refresh()
 
     def launch(self, tool: VendorTool) -> None:
+        if not tool.installer and not tool.console:
+            self.host.launch(tool)
+            return
+
         self.app.set_status(f"Starting {tool.name}", "run")
 
         def worker() -> None:

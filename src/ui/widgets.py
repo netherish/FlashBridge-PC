@@ -10,6 +10,7 @@ from tkinter import filedialog, messagebox
 
 import customtkinter as ctk
 
+from core.adb_auth import adb_public_key, open_adb_key_folder
 from core.safety import ConfirmationRequest
 from core.tools import SUPPORT_URL
 
@@ -20,7 +21,7 @@ class NavButton(ctk.CTkButton):
             master,
             text=text,
             anchor="w",
-            height=38,
+            height=34,
             corner_radius=8,
             fg_color="transparent",
             hover_color=("gray75", "gray25"),
@@ -400,3 +401,110 @@ class SupportSplash(ctk.CTkToplevel):
         except Exception:
             pass
         self.destroy()
+
+
+class AdbAuthDialog(ctk.CTkToplevel):
+    """Guided fix for ADB unauthorized errors, including recovery mode."""
+
+    STEPS = (
+        "Reboot the phone into Android, not recovery.",
+        "Keep USB debugging enabled and connect this PC.",
+        "On the phone, accept 'Allow USB debugging?' and check 'Always allow'.",
+        "Reboot into recovery. Enter the decryption password if recovery asks for it.",
+        "Retry the command. If it still fails, use 'Restart ADB server' below.",
+        "Some recoveries also need ADB/root access enabled in their own menu.",
+    )
+
+    def __init__(self, master, detail: str = ""):
+        super().__init__(master)
+        self.app = master
+        self.title("ADB authorization needed")
+        self.geometry("780x560")
+        self.resizable(False, False)
+        self.transient(master)
+        self.configure(fg_color=("#f8fafc", "#0b1120"))
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(2, weight=1)
+
+        ctk.CTkLabel(
+            self,
+            text="This PC is not trusted by the connected device",
+            font=ctk.CTkFont(size=20, weight="bold"),
+        ).grid(row=0, column=0, sticky="w", padx=24, pady=(20, 8))
+
+        info = ctk.CTkFrame(self, corner_radius=12)
+        info.grid(row=1, column=0, sticky="ew", padx=24)
+        info.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(
+            info,
+            text=(
+                "Recovery has no Android 'Allow USB debugging?' prompt, so the PC must be "
+                "trusted in Android first. Follow these steps, then retry."
+            ),
+            wraplength=710,
+            justify="left",
+        ).grid(row=0, column=0, sticky="w", padx=16, pady=(14, 6))
+        if detail:
+            ctk.CTkLabel(
+                info,
+                text=f"ADB said: {detail}",
+                wraplength=710,
+                justify="left",
+                text_color=("#b91c1c", "#fca5a5"),
+                font=ctk.CTkFont("Consolas", 11),
+            ).grid(row=1, column=0, sticky="w", padx=16, pady=(0, 14))
+
+        steps = ctk.CTkFrame(self)
+        steps.grid(row=2, column=0, sticky="nsew", padx=24, pady=14)
+        steps.grid_columnconfigure(0, weight=1)
+        for index, text in enumerate(self.STEPS):
+            ctk.CTkLabel(
+                steps,
+                text=f"{index + 1}.  {text}",
+                wraplength=690,
+                justify="left",
+                anchor="w",
+            ).grid(row=index, column=0, sticky="w", padx=16, pady=6)
+
+        actions = ctk.CTkFrame(self, fg_color="transparent")
+        actions.grid(row=3, column=0, sticky="ew", padx=24, pady=(0, 20))
+        ctk.CTkButton(
+            actions,
+            text="Restart ADB server",
+            width=150,
+            fg_color="#2563eb",
+            command=self._restart_server,
+        ).pack(side="left", padx=(0, 8))
+        ctk.CTkButton(
+            actions,
+            text="Open key folder",
+            width=130,
+            command=self._open_keys,
+        ).pack(side="left", padx=4)
+        ctk.CTkButton(
+            actions,
+            text="Copy key path",
+            width=120,
+            command=self._copy_key_path,
+            fg_color="transparent",
+        ).pack(side="left", padx=4)
+        ctk.CTkButton(actions, text="Close", width=90, command=self.destroy).pack(side="right")
+
+        self.lift()
+        self.focus_force()
+
+    def _restart_server(self) -> None:
+        try:
+            self.app.restart_adb_server()
+        except Exception as exc:
+            messagebox.showerror("ADB restart failed", str(exc), parent=self)
+
+    def _open_keys(self) -> None:
+        open_adb_key_folder()
+
+    def _copy_key_path(self) -> None:
+        key = adb_public_key()
+        self.clipboard_clear()
+        self.clipboard_append(str(key))
+        messagebox.showinfo("Copied", f"Copied:\n{key}", parent=self)

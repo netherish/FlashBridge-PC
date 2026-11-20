@@ -7,6 +7,8 @@ from typing import Any, Callable
 
 import customtkinter as ctk
 
+from core.adb_auth import is_unauthorized
+from core.commands import adb_args
 from core.devices import Device, device_manager
 from core.log_store import LogStore
 from core.runner import CommandResult, runner
@@ -16,7 +18,7 @@ from core.settings import Settings
 from core.tools import APP_NAME, APP_VERSION, SUPPORT_URL
 from core.vendor_tools import VendorManager
 from .ambient import AmbientBackground
-from .widgets import ConfirmDialog, NavButton, SupportSplash
+from .widgets import AdbAuthDialog, ConfirmDialog, NavButton, SupportSplash
 
 
 class FlashBridgeApp(ctk.CTk):
@@ -32,6 +34,7 @@ class FlashBridgeApp(ctk.CTk):
         self._pages: dict[str, Any] = {}
         self._nav_buttons: dict[str, NavButton] = {}
         self._support_splash: SupportSplash | None = None
+        self._adb_dialog: AdbAuthDialog | None = None
 
         ctk.set_appearance_mode(str(self.settings.get("appearance", "dark")))
         ctk.set_default_color_theme(str(self.settings.get("color_theme", "blue")))
@@ -53,7 +56,7 @@ class FlashBridgeApp(ctk.CTk):
 
         self.logs.log("FlashBridge PC started", source="system")
         device_manager.add_listener(self._on_devices_changed)
-        self.show("dashboard")
+        self.show("start")
         self.restart_polling()
         self.tk.call("lower", str(self.ambient))
 
@@ -63,7 +66,7 @@ class FlashBridgeApp(ctk.CTk):
         sidebar = ctk.CTkFrame(self, width=236, corner_radius=0, fg_color=("#e2ebfb", "#081125"))
         sidebar.grid(row=0, column=0, sticky="nsw")
         sidebar.grid_propagate(False)
-        sidebar.grid_rowconfigure(2, weight=1)
+        sidebar.grid_rowconfigure(1, weight=1)
 
         title = ctk.CTkFrame(sidebar, fg_color="transparent")
         title.grid(row=0, column=0, sticky="ew", padx=18, pady=(22, 18))
@@ -83,28 +86,43 @@ class FlashBridgeApp(ctk.CTk):
         )
 
         self.nav_sections = [
-            ("dashboard", "Dashboard"),
+            ("section", "START HERE"),
+            ("start", "Quick start"),
+            ("dashboard", "Overview"),
+            ("section", "DEVICE"),
             ("devices", "Devices"),
             ("fastboot", "Fastboot"),
-            ("shell", "ADB Shell"),
+            ("shell", "ADB shell"),
+            ("section", "FILES & RECOVERY"),
             ("apps", "Apps"),
             ("files", "Files"),
             ("sideload", "Sideload"),
-            ("logs", "Logs"),
+            ("section", "ADVANCED"),
             ("scripts", "Scripts"),
             ("tools", "Vendor tools"),
+            ("logs", "Logs"),
+            ("section", "APP"),
             ("settings", "Settings"),
             ("about", "About"),
         ]
-        nav = ctk.CTkFrame(sidebar, fg_color="transparent")
-        nav.grid(row=1, column=0, sticky="ew", padx=12)
-        for index, (name, label) in enumerate(self.nav_sections):
-            button = NavButton(nav, name, label, lambda n=name: self.show(n))
-            button.grid(row=index, column=0, sticky="ew", pady=2)
-            self._nav_buttons[name] = button
+        nav = ctk.CTkScrollableFrame(sidebar, fg_color="transparent", corner_radius=0)
+        nav.grid(row=1, column=0, sticky="nsew", padx=(12, 6), pady=(0, 6))
+        nav.grid_columnconfigure(0, weight=1)
+        for index, (kind, value) in enumerate(self.nav_sections):
+            if kind == "section":
+                ctk.CTkLabel(
+                    nav,
+                    text=value,
+                    font=ctk.CTkFont(size=10, weight="bold"),
+                    text_color=("#64748b", "#64748b"),
+                ).grid(row=index, column=0, sticky="w", padx=(10, 0), pady=(10, 2))
+                continue
+            button = NavButton(nav, kind, value, lambda n=kind: self.show(n))
+            button.grid(row=index, column=0, sticky="ew", pady=1)
+            self._nav_buttons[kind] = button
 
         footer = ctk.CTkFrame(sidebar, fg_color="transparent")
-        footer.grid(row=3, column=0, sticky="ew", padx=18, pady=18)
+        footer.grid(row=2, column=0, sticky="ew", padx=18, pady=(0, 18))
         ctk.CTkLabel(
             footer,
             text=f"v{APP_VERSION}  |  MIT License",
@@ -127,10 +145,19 @@ class FlashBridgeApp(ctk.CTk):
         self.device_combo.set("No device")
         self.device_combo.grid(row=0, column=3, padx=4)
 
-        ctk.CTkButton(top, text="Refresh", width=88, command=self.refresh_devices).grid(row=0, column=4, padx=6)
-        ctk.CTkButton(top, text="Cancel", width=76, command=self.cancel_current, fg_color="transparent").grid(
-            row=0, column=5, padx=6
+        ctk.CTkButton(top, text="Scan", width=78, command=self.refresh_devices).grid(row=0, column=4, padx=4)
+        ctk.CTkButton(top, text="Cancel", width=72, command=self.cancel_current, fg_color="transparent").grid(
+            row=0, column=5, padx=4
         )
+        ctk.CTkButton(
+            top,
+            text="ADB auth",
+            width=92,
+            command=lambda: self.show_adb_auth_help(),
+            fg_color="transparent",
+            border_width=1,
+            border_color="#38bdf8",
+        ).grid(row=0, column=6, padx=4)
         ctk.CTkButton(
             top,
             text="Support",
@@ -139,7 +166,7 @@ class FlashBridgeApp(ctk.CTk):
             fg_color="#f59e0b",
             hover_color="#d97706",
             text_color="#0b1021",
-        ).grid(row=0, column=6, padx=(0, 18))
+        ).grid(row=0, column=7, padx=(4, 18))
 
     def _build_content(self) -> None:
         self.content = ctk.CTkFrame(self, corner_radius=0, fg_color="transparent")
@@ -157,11 +184,13 @@ class FlashBridgeApp(ctk.CTk):
         from .pages.scripts import ScriptsPage
         from .pages.shell import ShellPage
         from .pages.sideload import SideloadPage
+        from .pages.start import StartPage
         from .pages.tools import ToolsPage
         from .pages.about import AboutPage
         from .pages.settings import SettingsPage
 
         classes = {
+            "start": StartPage,
             "dashboard": DashboardPage,
             "devices": DevicesPage,
             "fastboot": FastbootPage,
@@ -283,6 +312,42 @@ class FlashBridgeApp(ctk.CTk):
         self.logs.log(f"Opened support link: {SUPPORT_URL}", "INFO", "system")
         self.set_status("Support link opened", "ok")
 
+    def show_adb_auth_help(self, detail: str = "") -> None:
+        if self._adb_dialog is not None:
+            try:
+                if self._adb_dialog.winfo_exists():
+                    self._adb_dialog.lift()
+                    self._adb_dialog.focus_force()
+                    return
+            except tk.TclError:
+                pass
+        self._adb_dialog = AdbAuthDialog(self, detail)
+        self._adb_dialog.protocol("WM_DELETE_WINDOW", self._adb_dialog_closed)
+
+    def _adb_dialog_closed(self) -> None:
+        dialog = self._adb_dialog
+        self._adb_dialog = None
+        if dialog is not None:
+            dialog.destroy()
+
+    def restart_adb_server(self) -> None:
+        def work():
+            runner.run(adb_args(None, "kill-server"))
+            return runner.run(adb_args(None, "start-server"))
+
+        self.logs.log("Restarting ADB server...", "INFO", "adb")
+        self.set_status("Restarting ADB server", "run")
+        self.run_async(work, on_done=self._adb_server_restarted)
+
+    def _adb_server_restarted(self, _result) -> None:
+        self.logs.log(
+            "ADB server restarted. Reconnect and accept the phone prompt if shown.",
+            "INFO",
+            "adb",
+        )
+        self.set_status("ADB server restarted", "ok")
+        self.refresh_devices()
+
     # ---------- command execution ----------
 
     def run_async(self, function: Callable, on_done: Callable | None = None) -> None:
@@ -343,6 +408,13 @@ class FlashBridgeApp(ctk.CTk):
             level, state, label = "WARN", "warn", "Command cancelled"
         self.set_status(label, state)
         self.logs.log(f"{label} ({result.duration_ms} ms, exit {result.returncode})", level, "command")
+        if (
+            not result.ok
+            and not result.cancelled
+            and any(str(arg).lower().endswith("adb.exe") for arg in result.args)
+            and is_unauthorized(result.output)
+        ):
+            self.show_adb_auth_help("device unauthorized")
         if on_done:
             self._safe_callback(on_done, result)
 
@@ -379,6 +451,9 @@ class FlashBridgeApp(ctk.CTk):
     def on_close(self) -> None:
         self._poll_stop.set()
         self.ambient.stop()
+        tools_page = self._pages.get("tools")
+        if tools_page is not None and hasattr(tools_page, "host"):
+            tools_page.host.close_all()
         runner.cancel_all()
         self.destroy()
 

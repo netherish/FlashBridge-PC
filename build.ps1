@@ -4,7 +4,7 @@ $root = $PSScriptRoot
 $src = Join-Path $root "src"
 $dist = Join-Path $root "dist"
 $payloadDir = Join-Path $root "vendor\payload"
-$exeName = "FlashBridgePC-v1.0.0"
+$exeName = "FlashBridgePC-v1.0.1"
 $requiredTools = @("adb.exe", "fastboot.exe", "AdbWinApi.dll", "AdbWinUsbApi.dll")
 
 $vendorPayloads = @(

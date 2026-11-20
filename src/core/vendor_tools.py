@@ -386,7 +386,7 @@ class VendorManager:
             origin = "User supplied" if self.user_path(tool.id) else "Ready"
             return ToolStatus("ready", path, f"{origin}: {path}")
         if tool.payload and self.payload_path(tool).is_file():
-            return ToolStatus("bundled", None, "Bundled payload present; launch to unpack.")
+            return ToolStatus("bundled", None, "Bundled payload present; opens on first use.")
         if tool.id == "odin":
             return ToolStatus("setup", None, tool.note or "Set a launcher path to use Odin.")
         if tool.payload:

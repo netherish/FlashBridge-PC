@@ -4,20 +4,23 @@ A Windows desktop console for ADB, fastboot, and vendor service tools.
 
 FlashBridge PC is a single-file Windows EXE. It bundles Google platform-tools
 and the accepted vendor tool payloads. No runtime download is required for the
-tools listed below. Vendor payloads unpack on first use to
-`%APPDATA%\FlashBridgePC\vendor`, and every accepted tool is visible and
-launchable from the **Vendor tools** page inside FlashBridge PC.
+tools listed below. Vendor payloads unpack automatically on first use to
+`%APPDATA%\FlashBridgePC\vendor`. Every accepted tool is visible on the
+**Vendor tools** page, and compatible graphical tools open inside the built-in
+tool window instead of launching as separate apps.
 
 The Android phone app is a separate project. FlashBridge PC is not submitted
 to F-Droid.
 
 ## Download
 
-Download `FlashBridgePC-v1.0.0.exe` from the GitHub Releases page and run it.
+Download `FlashBridgePC-v1.0.1.exe` from the GitHub Releases page and run it.
 There is no installer and no separate platform-tools download.
 
 ## Features
 
+- Friendly Quick start page with a live connection banner and three simple steps
+- Grouped, scrollable navigation so every page stays reachable on small screens
 - Multi-device dashboard with ADB and fastboot detection
 - Fastboot flash queue with partition picker, SHA-256, file size and exact-command confirmation
 - Boot, erase, format, wipe, unlock, lock, set-active, OEM and getvar operations
@@ -30,7 +33,9 @@ There is no installer and no separate platform-tools download.
 - Dark, light and system themes
 - Animated ambient background with soft aurora orbs, optional motion-blur trails, and three speed presets
 - Accent-colored dashboard cards and quick actions
-- Vendor tools page with grouped cards, search, status, launch, folder access, and user-supplied launcher paths
+- Vendor tools page with grouped cards, search, status, one-click open, folder access, and user-supplied launcher paths
+- Embedded tool window for graphical vendor tools such as SP Flash Tool, Mi Flash and Mi Unlock
+- Guided ADB authorization helper with recovery-specific steps and ADB server restart
 
 ## Bundled vendor tools
 
@@ -56,11 +61,18 @@ device. Xiaomi China-region devices are not supported by the global unlock
 service. Mi Flash requires the exact Fastboot ROM for the connected device.
 
 The **Vendor tools** page shows each tool as ready, bundled, setup, missing, or
-excluded. **Launch** unpacks a bundled payload when needed and starts the tool.
-**Unpack all** prepares every bundled payload at once. **Open folder** opens the
-unpacked payload directory. **Set path** and **Clear** manage a user-supplied
-launcher for tools that are not bundled, such as Odin. **Notices** opens the
-third-party notices.
+excluded. **Open in app** unpacks a bundled payload when needed and shows the
+tool inside the built-in tool window. Installers use **Run installer** and
+command-line tools use **Open console** because Windows requires a separate
+window for those. **Prepare all** extracts every bundled payload in advance.
+**Open folder** opens the unpacked payload directory. **Set path** and **Clear**
+manage a user-supplied launcher for tools that are not bundled, such as Odin.
+**Notices** opens the third-party notices.
+
+The top bar **ADB auth** button opens a guided helper for `device unauthorized`
+errors. It explains the Android trust prompt, recovery-specific steps, and
+decryption-password behavior, and it can restart the ADB server or open the
+key folder.
 
 The **Settings** page includes controls for the animated background, motion-blur
 trails, and animation speed. All three are enabled by default and can be turned
@@ -72,14 +84,14 @@ Third-party mirror sources and payload hashes are documented in
 ## Diagnostics
 
 ```powershell
-FlashBridgePC-v1.0.0.exe --version
-FlashBridgePC-v1.0.0.exe --doctor
-FlashBridgePC-v1.0.0.exe --list-devices
-FlashBridgePC-v1.0.0.exe --vendor-status
+FlashBridgePC-v1.0.1.exe --version
+FlashBridgePC-v1.0.1.exe --doctor
+FlashBridgePC-v1.0.1.exe --list-devices
+FlashBridgePC-v1.0.1.exe --vendor-status
 ```
 
 When building from source, the same commands are available through
-`.\dist\FlashBridgePC-v1.0.0.exe`.
+`.\dist\FlashBridgePC-v1.0.1.exe`.
 
 ## Build from source
 
