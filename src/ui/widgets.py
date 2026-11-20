@@ -21,7 +21,7 @@ class NavButton(ctk.CTkButton):
             master,
             text=text,
             anchor="w",
-            height=34,
+            height=28,
             corner_radius=8,
             fg_color="transparent",
             hover_color=("gray75", "gray25"),

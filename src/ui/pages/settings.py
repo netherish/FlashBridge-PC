@@ -14,6 +14,8 @@ class SettingsPage(BasePage):
 
     def __init__(self, master, app):
         super().__init__(master, app)
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=0)
         scroll = ctk.CTkScrollableFrame(self, label_text="Application settings")
         scroll.grid(row=0, column=0, sticky="nsew")
         scroll.grid_columnconfigure(0, weight=1)

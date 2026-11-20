@@ -80,8 +80,8 @@ class StartPage(BasePage):
             2,
             "3",
             "Pick a task",
-            "Check device details, run ADB shell commands, or launch bundled vendor tools.",
-            ("Open vendor tools", lambda: self.app.show("tools")),
+            "Check device details, run ADB shell commands, or follow guided tool steps.",
+            ("Open guided steps", lambda: self.app.show("guides")),
             "#818cf8",
         )
 

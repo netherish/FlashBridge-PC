@@ -15,7 +15,8 @@ $vendorPayloads = @(
     @{ Name = "QPST_2.7.496.zip"; Sha = "B0EECB317851FBFF1A450FE0EE18BE1FAF59BC7744FF0E4383ED4C3F6F86A977" },
     @{ Name = "heimdall-suite-1.4.0-win32.zip"; Sha = "5A117709470CA5B54B53142FEE0B29708AB84174EEE226FE90B1184A5787173A" },
     @{ Name = "MiFlash20220507.zip"; Sha = "4880D3395154254A729F57A488BE44CA68EF6E19EDFBA5425A0AF25F19C5FF52" },
-    @{ Name = "MiUnlock-7.6.727.43-en.zip"; Sha = "6BB390BDDAAFF3E75A6A2B1ECAFA3F49BF6E4D93747302A6870698FB26285A32" }
+    @{ Name = "MiUnlock-7.6.727.43-en.zip"; Sha = "6BB390BDDAAFF3E75A6A2B1ECAFA3F49BF6E4D93747302A6870698FB26285A32" },
+    @{ Name = "MTK-Bypass-rev4.zip"; Sha = "209240382128D0CB9A473E765C0D7DB1AAFC0645760D314CA23AC61733AF3289" }
 )
 
 foreach ($tool in $requiredTools) {
@@ -39,6 +40,7 @@ $pyinstallerArgs = @(
     "--hidden-import", "darkdetect",
     "--add-data", "$root\LICENSE;.",
     "--add-data", "$root\THIRD_PARTY_NOTICES.md;.",
+    "--add-data", "$root\assets\FlashBridge.ico;assets",
     "--add-data", "$root\licenses\Apache-2.0.txt;licenses",
     "--add-binary", "$root\tools\adb.exe;tools",
     "--add-binary", "$root\tools\fastboot.exe;tools",

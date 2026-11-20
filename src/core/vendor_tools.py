@@ -162,13 +162,15 @@ TOOLS: tuple[VendorTool, ...] = (
     ),
     VendorTool(
         id="mtk-auth-bypass",
-        name="MTK auth bypass",
-        group="Excluded",
-        version="Not included",
-        summary="Security-control bypass utilities are not bundled or launched by FlashBridge PC.",
-        source="",
-        excluded=True,
-        note="Use authorized vendor service tools for protected devices.",
+        name="MTK auth bypass rev4",
+        group="MediaTek",
+        version="rev4",
+        summary="MediaTek authorization utility for authorized device service and repair.",
+        source="User-supplied local executable bundled at build time",
+        payload="MTK-Bypass-rev4.zip",
+        sha256="209240382128D0CB9A473E765C0D7DB1AAFC0645760D314CA23AC61733AF3289",
+        candidates=("mtk_bypass_rev4.exe",),
+        note="For authorized service only. Use on devices you own or have written permission to service.",
     ),
 )
 

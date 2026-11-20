@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import os
 import sys
 from pathlib import Path
@@ -74,6 +75,16 @@ def launch_gui() -> int:
     return 0
 
 
+def set_app_user_model_id() -> None:
+    """Make Windows show the bundled icon and group the taskbar button correctly."""
+    try:
+        from core.tools import APP_ID
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_ID)
+    except Exception:
+        return
+
+
 def hide_console() -> None:
     """Hide the console window when the EXE is launched as a GUI app."""
     if not getattr(sys, "frozen", False):
@@ -142,6 +153,7 @@ def main() -> int:
         return list_devices()
     if args.vendor_status:
         return vendor_status()
+    set_app_user_model_id()
     hide_console()
     return launch_gui()
 

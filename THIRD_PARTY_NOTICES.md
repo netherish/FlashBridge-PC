@@ -189,10 +189,19 @@ No official public Windows distribution of Odin was found. Odin is not bundled.
 The Vendor tools page can detect common installed Odin paths or use a path set
 by the user. Heimdall is provided as the bundled Samsung flashing tool.
 
-### MTK auth bypass
+### MTK auth bypass rev4
 
-Security-control bypass utilities are not bundled or launched by FlashBridge
-PC. Use authorized vendor service tools for protected devices.
+Source: user-supplied executable from the local desktop at build time.
+
+Archive: `MTK-Bypass-rev4.zip`
+
+SHA-256: `209240382128D0CB9A473E765C0D7DB1AAFC0645760D314CA23AC61733AF3289`
+
+Launcher: `mtk_bypass_rev4.exe`
+
+This utility can override MediaTek device protections. It is included only for
+authorized device service and repair. Use it only on devices you own or have
+written permission to service. FlashBridge PC does not use it automatically.
 
 ## User responsibility
 

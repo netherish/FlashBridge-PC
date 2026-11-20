@@ -15,7 +15,7 @@ from core.runner import CommandResult, runner
 from core.safety import build_confirmation, requires_confirmation
 from core.scripts import ScriptStore
 from core.settings import Settings
-from core.tools import APP_NAME, APP_VERSION, SUPPORT_URL
+from core.tools import APP_NAME, APP_VERSION, SUPPORT_URL, resource_root
 from core.vendor_tools import VendorManager
 from .ambient import AmbientBackground
 from .widgets import AdbAuthDialog, ConfirmDialog, NavButton, SupportSplash
@@ -43,10 +43,17 @@ class FlashBridgeApp(ctk.CTk):
         self.configure(fg_color=("#e8f1ff", "#050914"))
         self.ambient = AmbientBackground(self, self.settings)
         self.title(f"{APP_NAME} {APP_VERSION}")
+        icon_path = resource_root() / "assets" / "FlashBridge.ico"
+        if icon_path.is_file():
+            try:
+                self.iconbitmap(default=str(icon_path))
+            except Exception:
+                pass
         self.geometry("1480x920")
         self.minsize(1120, 700)
         self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=0)
+        self.grid_rowconfigure(1, weight=1)
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self._build_sidebar()
@@ -63,13 +70,14 @@ class FlashBridgeApp(ctk.CTk):
     # ---------- layout ----------
 
     def _build_sidebar(self) -> None:
-        sidebar = ctk.CTkFrame(self, width=236, corner_radius=0, fg_color=("#e2ebfb", "#081125"))
-        sidebar.grid(row=0, column=0, sticky="nsw")
+        sidebar = ctk.CTkFrame(self, width=300, corner_radius=0, fg_color=("#e2ebfb", "#081125"))
+        sidebar.grid(row=0, column=0, rowspan=2, sticky="ns")
         sidebar.grid_propagate(False)
+        sidebar.grid_columnconfigure(0, weight=1)
         sidebar.grid_rowconfigure(1, weight=1)
 
         title = ctk.CTkFrame(sidebar, fg_color="transparent")
-        title.grid(row=0, column=0, sticky="ew", padx=18, pady=(22, 18))
+        title.grid(row=0, column=0, sticky="ew", padx=18, pady=(14, 10))
         ctk.CTkLabel(
             title,
             text="FlashBridge",
@@ -98,15 +106,16 @@ class FlashBridgeApp(ctk.CTk):
             ("files", "Files"),
             ("sideload", "Sideload"),
             ("section", "ADVANCED"),
-            ("scripts", "Scripts"),
+            ("guides", "Guided tools"),
             ("tools", "Vendor tools"),
+            ("scripts", "Scripts"),
             ("logs", "Logs"),
             ("section", "APP"),
             ("settings", "Settings"),
             ("about", "About"),
         ]
         nav = ctk.CTkScrollableFrame(sidebar, fg_color="transparent", corner_radius=0)
-        nav.grid(row=1, column=0, sticky="nsew", padx=(12, 6), pady=(0, 6))
+        nav.grid(row=1, column=0, sticky="nsew", padx=0, pady=0)
         nav.grid_columnconfigure(0, weight=1)
         for index, (kind, value) in enumerate(self.nav_sections):
             if kind == "section":
@@ -115,14 +124,14 @@ class FlashBridgeApp(ctk.CTk):
                     text=value,
                     font=ctk.CTkFont(size=10, weight="bold"),
                     text_color=("#64748b", "#64748b"),
-                ).grid(row=index, column=0, sticky="w", padx=(10, 0), pady=(10, 2))
+                ).grid(row=index, column=0, sticky="w", padx=(10, 0), pady=(4, 0))
                 continue
             button = NavButton(nav, kind, value, lambda n=kind: self.show(n))
-            button.grid(row=index, column=0, sticky="ew", pady=1)
+            button.grid(row=index, column=0, sticky="ew", pady=0)
             self._nav_buttons[kind] = button
 
         footer = ctk.CTkFrame(sidebar, fg_color="transparent")
-        footer.grid(row=2, column=0, sticky="ew", padx=18, pady=(0, 18))
+        footer.grid(row=2, column=0, sticky="ew", padx=18, pady=(0, 10))
         ctk.CTkLabel(
             footer,
             text=f"v{APP_VERSION}  |  MIT License",
@@ -180,6 +189,7 @@ class FlashBridgeApp(ctk.CTk):
         from .pages.devices import DevicesPage
         from .pages.fastboot import FastbootPage
         from .pages.files import FilesPage
+        from .pages.guides import GuidesPage
         from .pages.logs import LogsPage
         from .pages.scripts import ScriptsPage
         from .pages.shell import ShellPage
@@ -198,6 +208,7 @@ class FlashBridgeApp(ctk.CTk):
             "apps": AppsPage,
             "files": FilesPage,
             "sideload": SideloadPage,
+            "guides": GuidesPage,
             "logs": LogsPage,
             "scripts": ScriptsPage,
             "tools": ToolsPage,

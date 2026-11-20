@@ -13,6 +13,8 @@ class LogsPage(BasePage):
 
     def __init__(self, master, app):
         super().__init__(master, app)
+        self.grid_rowconfigure(1, weight=0)
+        self.grid_rowconfigure(2, weight=1)
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.grid(row=0, column=0, sticky="ew", pady=(0, 10))
         ctk.CTkLabel(header, text="Activity log", font=ctk.CTkFont(size=24, weight="bold")).pack(side="left")

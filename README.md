@@ -33,9 +33,10 @@ There is no installer and no separate platform-tools download.
 - Dark, light and system themes
 - Animated ambient background with soft aurora orbs, optional motion-blur trails, and three speed presets
 - Accent-colored dashboard cards and quick actions
-- Vendor tools page with grouped cards, search, status, one-click open, folder access, and user-supplied launcher paths
-- Embedded tool window for graphical vendor tools such as SP Flash Tool, Mi Flash and Mi Unlock
+- Guided tool pages for ADB recovery, Xiaomi unlock and flash, MediaTek, Qualcomm and Samsung workflows
+- Vendor tools page with grouped cards, search, status, one-click launch, folder access, and user-supplied launcher paths
 - Guided ADB authorization helper with recovery-specific steps and ADB server restart
+- Scrollable full-height sidebar with grouped options that stay reachable on small windows
 
 ## Bundled vendor tools
 
@@ -51,20 +52,27 @@ There is no installer and no separate platform-tools download.
 | Heimdall frontend | 1.4.0 | Graphical interface for Heimdall |
 | Mi Flash Tool | 20220507 | Xiaomi Fastboot ROM flashing |
 | Mi Unlock Tool | 7.6.727.43 | Xiaomi bootloader unlock, account permission required |
+| MTK auth bypass rev4 | rev4 | User-supplied utility for authorized service use only |
 
 Samsung Odin has no official public Windows distribution, so it is not bundled.
 The Vendor tools page can detect common installed Odin paths or use a launcher
-path that you supply. MTK auth bypass utilities are not included or launched.
+path that you supply. MTK auth bypass rev4 is bundled for authorized service and
+repair only; use it only on devices you own or have written permission to service.
 
 Mi Unlock requires an authorized Xiaomi account, OEM unlocking, and a compatible
 device. Xiaomi China-region devices are not supported by the global unlock
 service. Mi Flash requires the exact Fastboot ROM for the connected device.
 
+The **Guided tools** page is the easiest starting point. It explains each task
+in plain language, checks connected devices, validates selected files and shows
+a ready summary. When a vendor requires its signed application for the final
+protected step, the guide opens that official tool separately instead of
+fighting with an embedded window.
+
 The **Vendor tools** page shows each tool as ready, bundled, setup, missing, or
-excluded. **Open in app** unpacks a bundled payload when needed and shows the
-tool inside the built-in tool window. Installers use **Run installer** and
-command-line tools use **Open console** because Windows requires a separate
-window for those. **Prepare all** extracts every bundled payload in advance.
+excluded. **Open tool** unpacks a bundled payload when needed and starts the
+official tool. Installers use **Run installer** and command-line tools use
+**Open console**. **Prepare all** extracts every bundled payload in advance.
 **Open folder** opens the unpacked payload directory. **Set path** and **Clear**
 manage a user-supplied launcher for tools that are not bundled, such as Odin.
 **Notices** opens the third-party notices.
